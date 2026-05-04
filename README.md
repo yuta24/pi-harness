@@ -9,19 +9,10 @@ question, and statusline extensions.
 pi install git:github.com/yuta24/pi-harness
 ```
 
-Or install individual extensions:
-
-```sh
-pi install git:github.com/yuta24/pi-harness/extensions/sandbox
-pi install git:github.com/yuta24/pi-harness/extensions/subagent
-pi install git:github.com/yuta24/pi-harness/extensions/ask-plan
-pi install git:github.com/yuta24/pi-harness/extensions/model-routing
-pi install git:github.com/yuta24/pi-harness/extensions/question
-pi install git:github.com/yuta24/pi-harness/extensions/statusline
-```
-
 Use `-l` to install project-locally into `.pi/settings.json`. Omit `-l` for a
 user-global install.
+
+After installation, use `pi config` to enable or disable individual extensions.
 
 The sandbox extension requires an additional setup step — see its
 [README](extensions/sandbox/README.md) for details.
