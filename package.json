@@ -6,12 +6,12 @@
   "keywords": ["pi-package"],
   "pi": {
     "extensions": [
-      "extensions/sandbox/index.ts",
-      "extensions/subagent/index.ts",
-      "extensions/ask-plan/index.ts",
-      "extensions/model-routing/index.ts",
-      "extensions/question/index.ts",
-      "extensions/statusline/index.ts"
+      "extensions/sandbox",
+      "extensions/subagent",
+      "extensions/ask-plan",
+      "extensions/model-routing",
+      "extensions/question",
+      "extensions/statusline"
     ]
   },
   "dependencies": {
