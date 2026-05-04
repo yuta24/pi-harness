@@ -1,7 +1,7 @@
 # pi-harness
 
 Project-local Pi harness with a sandbox extension for assistant `bash` tool
-calls.
+calls and a subagent extension for delegated work.
 
 ## Sandbox extension
 
@@ -26,3 +26,18 @@ Sandbox policy lives in `.pi/sandbox.json`.
 Invalid or unknown sandbox config keys are rejected at startup. If sandbox
 initialization fails, assistant `bash` tool calls are blocked until the config
 is fixed or `pi --no-sandbox` is used.
+
+## Subagent extension
+
+The extension is in `.pi/extensions/subagent/` and registers a `subagent` tool.
+It runs isolated `pi --mode json -p --no-session` subprocesses using agent
+definitions from `.pi/agents/*.md` by default.
+
+Use `/agents` inside Pi to list available project agents.
+
+Subagents do not inherit extension tools recursively. Child processes explicitly
+reload the project sandbox extension when present, and custom `cwd` values must
+stay inside the project root.
+
+Each subagent has a 30-minute watchdog timeout by default. Pass
+`timeoutSeconds: 0` to disable it for a specific invocation.
