@@ -1,7 +1,7 @@
 # pi-harness
 
-Project-local Pi harness with sandbox, subagent, ask/plan mode, and model
-routing extensions.
+Project-local Pi harness with sandbox, subagent, ask/plan mode, model routing,
+and question extensions.
 
 ## Sandbox extension
 
@@ -58,3 +58,11 @@ model route selection from `.pi/model-routing.json`.
 
 Use `/route` inside Pi to inspect or pin a route. Routes can change the model,
 thinking level, or both based on prompt keywords, regexes, and context usage.
+
+## Question extension
+
+The extension is in `.pi/extensions/question/` and registers an
+`ask_user_question` tool.
+
+The tool lets the assistant ask explicit text, yes/no, or option-based
+clarifying questions before it proceeds with ambiguous work.
