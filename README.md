@@ -1,6 +1,7 @@
 # pi-harness
 
-Project-local Pi harness with sandbox, subagent, and ask/plan mode extensions.
+Project-local Pi harness with sandbox, subagent, ask/plan mode, and model
+routing extensions.
 
 ## Sandbox extension
 
@@ -49,3 +50,11 @@ and `/plan` modes.
 Ask mode is for read-only Q&A. Plan mode is for read-only investigation and
 numbered plan creation. In interactive sessions, Pi can then execute the
 approved plan and track `[DONE:n]` markers.
+
+## Model routing extension
+
+The extension is in `.pi/extensions/model-routing/` and registers automatic
+model route selection from `.pi/model-routing.json`.
+
+Use `/route` inside Pi to inspect or pin a route. Routes can change the model,
+thinking level, or both based on prompt keywords, regexes, and context usage.

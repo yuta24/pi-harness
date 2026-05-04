@@ -1,0 +1,34 @@
+{
+  "defaultRoute": "default",
+  "routes": [
+    {
+      "name": "review",
+      "description": "Code review and risk analysis",
+      "match": {
+        "keywords": ["review", "レビュー", "コードレビュー", "リスク", "regression"]
+      },
+      "thinkingLevel": "high"
+    },
+    {
+      "name": "plan",
+      "description": "Planning and investigation",
+      "match": {
+        "keywords": ["plan", "計画", "設計", "調査", "方針"]
+      },
+      "thinkingLevel": "high"
+    },
+    {
+      "name": "quick",
+      "description": "Small factual or status requests",
+      "match": {
+        "keywords": ["status", "状態", "確認", "show", "list"]
+      },
+      "thinkingLevel": "low"
+    },
+    {
+      "name": "default",
+      "description": "Default coding route",
+      "thinkingLevel": "medium"
+    }
+  ]
+}
