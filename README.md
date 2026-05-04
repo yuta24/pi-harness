@@ -1,7 +1,6 @@
 # pi-harness
 
-Project-local Pi harness with a sandbox extension for assistant `bash` tool
-calls and a subagent extension for delegated work.
+Project-local Pi harness with sandbox, subagent, and ask/plan mode extensions.
 
 ## Sandbox extension
 
@@ -41,3 +40,12 @@ stay inside the project root.
 
 Each subagent has a 30-minute watchdog timeout by default. Pass
 `timeoutSeconds: 0` to disable it for a specific invocation.
+
+## Ask / plan mode extension
+
+The extension is in `.pi/extensions/ask-plan/` and registers read-only `/ask`
+and `/plan` modes.
+
+Ask mode is for read-only Q&A. Plan mode is for read-only investigation and
+numbered plan creation. In interactive sessions, Pi can then execute the
+approved plan and track `[DONE:n]` markers.
