@@ -8,7 +8,8 @@
 import { spawn } from "node:child_process";
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, parse, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth } from "@mariozechner/pi-tui";
@@ -24,16 +25,54 @@ import {
 
 const CONFIG_PATH = ".pi/statusline.json";
 
+/**
+ * Directory of this extension file, used to locate config bundled with
+ * the extension's package when no project-local config exists.
+ */
+const extensionDir = dirname(fileURLToPath(import.meta.url));
+const MAX_ANCESTOR_DEPTH = 20;
+
+/**
+ * Walk up from a directory looking for a parent that contains the
+ * statusline config file. This allows globally-installed packages
+ * (git/npm) to ship a default `.pi/statusline.json` and script.
+ */
+function findPackageConfigDir(startDir: string): string | null {
+  let current = resolve(startDir);
+  const root = parse(current).root;
+  for (let i = 0; i < MAX_ANCESTOR_DEPTH; i++) {
+    if (existsSync(join(current, CONFIG_PATH))) {
+      return current;
+    }
+    const parent = dirname(current);
+    if (parent === current || parent === root) break;
+    current = parent;
+  }
+  return null;
+}
+
 export default function statuslineExtension(pi: ExtensionAPI): void {
   let config: NormalizedStatuslineConfig | undefined;
   let commandPath: string | undefined;
   let enabled = true;
 
   function loadConfig(ctx: ExtensionContext): void {
-    const path = join(ctx.cwd, CONFIG_PATH);
-    const raw = existsSync(path) ? JSON.parse(readFileSync(path, "utf-8")) : {};
+    // Priority 1: project-local config at ctx.cwd/.pi/statusline.json
+    let configDir = ctx.cwd;
+    let configPath = join(ctx.cwd, CONFIG_PATH);
+
+    // Priority 2: config bundled inside the extension's package
+    if (!existsSync(configPath)) {
+      const pkgDir = findPackageConfigDir(extensionDir);
+      if (pkgDir) {
+        configDir = pkgDir;
+        configPath = join(pkgDir, CONFIG_PATH);
+      }
+    }
+
+    const raw = existsSync(configPath) ? JSON.parse(readFileSync(configPath, "utf-8")) : {};
     config = normalizeConfig(raw);
-    commandPath = resolveCommand(config, ctx.cwd);
+    commandPath = resolveCommand(config, configDir);
     enabled = config.enabled;
   }
 

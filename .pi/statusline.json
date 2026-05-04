@@ -1,7 +1,0 @@
-{
-  "enabled": true,
-  "command": ".pi/statusline.js",
-  "args": [],
-  "timeoutMs": 500,
-  "maxOutputChars": 240
-}
