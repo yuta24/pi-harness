@@ -12,7 +12,8 @@
       "extensions/model-routing",
       "extensions/question",
       "extensions/statusline"
-    ]
+    ],
+    "skills": ["skills"]
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "^0.0.26"
