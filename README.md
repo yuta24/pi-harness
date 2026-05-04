@@ -3,15 +3,36 @@
 Project-local Pi harness with sandbox, subagent, ask/plan mode, model routing,
 question, and statusline extensions.
 
+## Installation
+
+Install the extensions you want from the repository root:
+
+```sh
+pi install . -l
+```
+
+Or install individual extensions:
+
+```sh
+pi install ./extensions/sandbox -l
+pi install ./extensions/subagent -l
+pi install ./extensions/ask-plan -l
+pi install ./extensions/model-routing -l
+pi install ./extensions/question -l
+pi install ./extensions/statusline -l
+```
+
+Use `-l` to install project-locally into `.pi/settings.json`. Omit `-l` for a
+user-global install.
+
 ## Sandbox extension
 
-The extension is in `.pi/extensions/sandbox/` and is auto-discovered when `pi`
-runs from this repository.
+The extension is in `extensions/sandbox/`.
 
 Install its runtime dependency once:
 
 ```sh
-cd .pi/extensions/sandbox
+cd extensions/sandbox
 npm install
 ```
 
@@ -29,7 +50,7 @@ is fixed or `pi --no-sandbox` is used.
 
 ## Subagent extension
 
-The extension is in `.pi/extensions/subagent/` and registers a `subagent` tool.
+The extension is in `extensions/subagent/` and registers a `subagent` tool.
 It runs isolated `pi --mode json -p --no-session` subprocesses using agent
 definitions from `.pi/agents/*.md` by default.
 
@@ -44,7 +65,7 @@ Each subagent has a 30-minute watchdog timeout by default. Pass
 
 ## Ask / plan mode extension
 
-The extension is in `.pi/extensions/ask-plan/` and registers read-only `/ask`
+The extension is in `extensions/ask-plan/` and registers read-only `/ask`
 and `/plan` modes.
 
 Ask mode is for read-only Q&A. Plan mode is for read-only investigation and
@@ -53,7 +74,7 @@ approved plan and track `[DONE:n]` markers.
 
 ## Model routing extension
 
-The extension is in `.pi/extensions/model-routing/` and registers automatic
+The extension is in `extensions/model-routing/` and registers automatic
 model route selection from `.pi/model-routing.json`.
 
 Use `/route` inside Pi to inspect or pin a route. Routes can change the model,
@@ -61,7 +82,7 @@ thinking level, or both based on prompt keywords, regexes, and context usage.
 
 ## Question extension
 
-The extension is in `.pi/extensions/question/` and registers an
+The extension is in `extensions/question/` and registers an
 `ask_user_question` tool.
 
 The tool lets the assistant ask explicit text, yes/no, or option-based
@@ -69,7 +90,7 @@ clarifying questions before it proceeds with ambiguous work.
 
 ## Statusline extension
 
-The extension is in `.pi/extensions/statusline/` and replaces the interactive
+The extension is in `extensions/statusline/` and replaces the interactive
 footer with stdout from `.pi/statusline.js`.
 
 Configuration lives in `.pi/statusline.json`. The script is executed without a

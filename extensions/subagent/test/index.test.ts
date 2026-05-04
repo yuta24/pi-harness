@@ -14,8 +14,8 @@ import {
 
 function makeTempProject() {
   const root = mkdtempSync(join(tmpdir(), "pi-subagent-test-"));
-  mkdirSync(join(root, ".pi", "extensions", "sandbox"), { recursive: true });
-  writeFileSync(join(root, ".pi", "extensions", "sandbox", "index.ts"), "export default function noop() {}\n");
+  mkdirSync(join(root, "extensions", "sandbox"), { recursive: true });
+  writeFileSync(join(root, "extensions", "sandbox", "index.ts"), "export default function noop() {}\n");
   mkdirSync(join(root, "src"), { recursive: true });
   return root;
 }
@@ -45,10 +45,25 @@ test("getChildExtensionArgs disables inherited extensions and reloads sandbox on
     assert.deepEqual(getChildExtensionArgs(root), [
       "--no-extensions",
       "-e",
-      join(root, ".pi", "extensions", "sandbox", "index.ts"),
+      join(root, "extensions", "sandbox", "index.ts"),
     ]);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("getChildExtensionArgs prefers the bundled sandbox when available", () => {
+  const root = makeTempProject();
+  const bundledRoot = mkdtempSync(join(tmpdir(), "pi-subagent-bundled-test-"));
+  const bundledSandbox = join(bundledRoot, "sandbox", "index.ts");
+  try {
+    mkdirSync(join(bundledRoot, "sandbox"), { recursive: true });
+    writeFileSync(bundledSandbox, "export default function noop() {}\n");
+
+    assert.deepEqual(getChildExtensionArgs(root, bundledSandbox), ["--no-extensions", "-e", bundledSandbox]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(bundledRoot, { recursive: true, force: true });
   }
 });
 

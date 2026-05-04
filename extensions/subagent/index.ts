@@ -10,6 +10,7 @@ import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { AgentToolResult } from "@mariozechner/pi-coding-agent";
 import { type ExtensionAPI, withFileMutationQueue } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
@@ -33,6 +34,7 @@ import {
 
 const MAX_PARALLEL_TASKS = 8;
 const MAX_CONCURRENCY = 4;
+const BUNDLED_SANDBOX_EXTENSION = fileURLToPath(new URL("../sandbox/index.ts", import.meta.url));
 
 type Message = {
   role?: string;
@@ -321,7 +323,13 @@ async function runSingleAgent(
 
   try {
     const resolvedCwd = resolveAgentCwd(projectRoot, cwd) ?? defaultCwd;
-    const args = ["--mode", "json", "-p", "--no-session", ...getChildExtensionArgs(projectRoot)];
+    const args = [
+      "--mode",
+      "json",
+      "-p",
+      "--no-session",
+      ...getChildExtensionArgs(projectRoot, BUNDLED_SANDBOX_EXTENSION),
+    ];
     if (agent.model) args.push("--model", agent.model);
     const ignoredTools = getIgnoredTools(agent);
     if (ignoredTools.length > 0) {

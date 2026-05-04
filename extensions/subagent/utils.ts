@@ -35,10 +35,14 @@ export function resolveAgentCwd(projectRoot: string, cwd: string | undefined): s
   return resolved;
 }
 
-export function getChildExtensionArgs(projectRoot: string): string[] {
+export function getChildExtensionArgs(projectRoot: string, bundledSandboxExtension?: string): string[] {
   const args = ["--no-extensions"];
-  const sandboxExtension = path.join(projectRoot, ".pi", "extensions", "sandbox", "index.ts");
-  if (fs.existsSync(sandboxExtension)) {
+  const sandboxExtensions = [
+    bundledSandboxExtension,
+    path.join(projectRoot, "extensions", "sandbox", "index.ts"),
+  ].filter((candidate): candidate is string => Boolean(candidate));
+  const sandboxExtension = sandboxExtensions.find((candidate) => fs.existsSync(candidate));
+  if (sandboxExtension) {
     args.push("-e", sandboxExtension);
   }
   return args;

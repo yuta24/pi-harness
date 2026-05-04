@@ -8,7 +8,7 @@ User shell commands entered with `!` or `!!` are intentionally not sandboxed.
 ## Setup
 
 ```sh
-cd .pi/extensions/sandbox
+cd extensions/sandbox
 npm install
 ```
 
@@ -17,8 +17,8 @@ Linux also requires `bubblewrap`, `socat`, and `ripgrep`. macOS uses
 
 ## Usage
 
-Run `pi` from the repository root. Pi auto-discovers project extensions under
-`.pi/extensions/`.
+Install this extension from the repository root with Pi, or load it explicitly
+with `-e extensions/sandbox/index.ts`.
 
 Use `/sandbox` inside Pi to show the merged sandbox configuration and current
 status.
