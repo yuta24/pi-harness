@@ -5,21 +5,21 @@ question, and statusline extensions.
 
 ## Installation
 
-Install the extensions you want from the repository root:
+Install all extensions from GitHub:
 
 ```sh
-pi install . -l
+pi install git:github.com/yuta24/pi-harness
 ```
 
 Or install individual extensions:
 
 ```sh
-pi install ./extensions/sandbox -l
-pi install ./extensions/subagent -l
-pi install ./extensions/ask-plan -l
-pi install ./extensions/model-routing -l
-pi install ./extensions/question -l
-pi install ./extensions/statusline -l
+pi install git:github.com/yuta24/pi-harness/extensions/sandbox
+pi install git:github.com/yuta24/pi-harness/extensions/subagent
+pi install git:github.com/yuta24/pi-harness/extensions/ask-plan
+pi install git:github.com/yuta24/pi-harness/extensions/model-routing
+pi install git:github.com/yuta24/pi-harness/extensions/question
+pi install git:github.com/yuta24/pi-harness/extensions/statusline
 ```
 
 Use `-l` to install project-locally into `.pi/settings.json`. Omit `-l` for a
