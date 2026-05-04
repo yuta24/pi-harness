@@ -1,7 +1,7 @@
 # pi-harness
 
 Project-local Pi harness with sandbox, subagent, ask/plan mode, model routing,
-and question extensions.
+question, and statusline extensions.
 
 ## Sandbox extension
 
@@ -66,3 +66,12 @@ The extension is in `.pi/extensions/question/` and registers an
 
 The tool lets the assistant ask explicit text, yes/no, or option-based
 clarifying questions before it proceeds with ambiguous work.
+
+## Statusline extension
+
+The extension is in `.pi/extensions/statusline/` and replaces the interactive
+footer with stdout from `.pi/statusline.js`.
+
+Configuration lives in `.pi/statusline.json`. The script is executed without a
+shell, must stay inside the project root by default, has a timeout, and receives
+Pi status data through `PI_*` environment variables and stdin JSON.
