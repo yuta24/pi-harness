@@ -1,4 +1,4 @@
-export type AskPlanMode = "off" | "ask" | "plan" | "execute";
+export type AskPlanMode = "off" | "ask" | "plan";
 
 export interface PlanStep {
   step: number;
@@ -133,27 +133,6 @@ export function extractPlanSteps(message: string): PlanStep[] {
   }
 
   return steps;
-}
-
-export function extractDoneSteps(message: string): number[] {
-  const steps: number[] = [];
-  for (const match of message.matchAll(/\[DONE:(\d+)\]/gi)) {
-    const step = Number(match[1]);
-    if (Number.isInteger(step) && step > 0) steps.push(step);
-  }
-  return steps;
-}
-
-export function markCompletedSteps(message: string, steps: PlanStep[]): number {
-  let changed = 0;
-  for (const step of extractDoneSteps(message)) {
-    const item = steps.find((candidate) => candidate.step === step);
-    if (item && !item.completed) {
-      item.completed = true;
-      changed++;
-    }
-  }
-  return changed;
 }
 
 export function formatPlanSteps(steps: PlanStep[]): string {

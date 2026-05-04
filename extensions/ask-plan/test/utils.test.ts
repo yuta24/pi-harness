@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  extractDoneSteps,
   extractPlanSteps,
-  formatPlanSteps,
   isSafeReadOnlyCommand,
-  markCompletedSteps,
 } from "../utils.ts";
 
 test("isSafeReadOnlyCommand allows read-only shell commands", () => {
@@ -67,18 +64,4 @@ test("extractPlanSteps accepts markdown and Japanese plan headings", () => {
     japaneseSteps.map((step) => step.text),
     ["対象ファイルを確認する", "テストを追加する"],
   );
-});
-
-test("markCompletedSteps tracks DONE markers", () => {
-  const steps = extractPlanSteps(`
-Plan:
-1. Add code
-2. Run tests
-`);
-
-  assert.deepEqual(extractDoneSteps("finished [DONE:1]"), [1]);
-  assert.equal(markCompletedSteps("finished [DONE:1]", steps), 1);
-  assert.equal(steps[0].completed, true);
-  assert.equal(steps[1].completed, false);
-  assert.match(formatPlanSteps(steps), /\[x\] Add code/);
 });

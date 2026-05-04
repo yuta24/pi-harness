@@ -3,8 +3,7 @@
  *
  * Ask mode: read-only Q&A. The assistant may inspect but must not modify.
  * Plan mode: read-only exploration plus numbered implementation plan extraction.
- * Execution mode: after explicit approval, normal tools are restored and progress
- * can be tracked with [DONE:n] markers.
+ * Use /normal to exit either mode and return to normal editing.
  */
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage, TextContent } from "@mariozechner/pi-ai";
@@ -19,7 +18,6 @@ import {
   extractPlanSteps,
   formatPlanSteps,
   isSafeReadOnlyCommand,
-  markCompletedSteps,
 } from "./utils.js";
 
 const READ_ONLY_TOOLS = ["read", "bash", "grep", "find", "ls"];
@@ -74,21 +72,6 @@ export default function askPlanExtension(pi: ExtensionAPI): void {
       return;
     }
 
-    if (mode === "execute" && planSteps.length > 0) {
-      const done = planSteps.filter((step) => step.completed).length;
-      ctx.ui.setStatus("ask-plan", ctx.ui.theme.fg("accent", `plan ${done}/${planSteps.length}`));
-      ctx.ui.setWidget(
-        "ask-plan-steps",
-        planSteps.map((step) => {
-          if (step.completed) {
-            return ctx.ui.theme.fg("success", `[x] ${step.text}`);
-          }
-          return ctx.ui.theme.fg("muted", `[ ] ${step.text}`);
-        }),
-      );
-      return;
-    }
-
     ctx.ui.setStatus("ask-plan", undefined);
     ctx.ui.setWidget("ask-plan-steps", undefined);
   }
@@ -114,59 +97,38 @@ export default function askPlanExtension(pi: ExtensionAPI): void {
     }
 
     mode = nextMode;
-    if (nextMode !== "execute") {
-      planSteps = [];
-      pi.setActiveTools(READ_ONLY_TOOLS);
-      ctx.ui.notify(
-        `${nextMode === "ask" ? "Ask" : "Plan"} mode enabled. Read-only tools: ${READ_ONLY_TOOLS.join(", ")}`,
-        "info",
-      );
-    }
-    updateStatus(ctx);
-    persistState();
-  }
-
-  function startExecution(ctx: ExtensionContext): void {
-    mode = "execute";
-    restoreTools();
-    updateStatus(ctx);
-    persistState();
-
-    const first = planSteps.find((step) => !step.completed);
-    pi.sendMessage(
-      {
-        customType: "ask-plan-execute",
-        content: first
-          ? `Execute the approved plan. Start with step ${first.step}: ${first.text}`
-          : "Execute the approved plan.",
-        display: true,
-      },
-      { triggerTurn: true },
+    planSteps = [];
+    pi.setActiveTools(READ_ONLY_TOOLS);
+    ctx.ui.notify(
+      `${nextMode === "ask" ? "Ask" : "Plan"} mode enabled. Read-only tools: ${READ_ONLY_TOOLS.join(", ")}`,
+      "info",
     );
+    updateStatus(ctx);
+    persistState();
   }
 
   pi.registerCommand("ask", {
-    description: "Toggle ask mode (read-only Q&A)",
+    description: "Switch to ask mode (read-only Q&A). Use /normal to exit.",
     handler: async (_args, ctx) => {
       enterMode(mode === "ask" ? "off" : "ask", ctx);
     },
   });
 
   pi.registerCommand("plan", {
-    description: "Toggle plan mode (read-only planning)",
+    description: "Switch to plan mode (read-only planning). Use /normal to exit.",
     handler: async (_args, ctx) => {
       enterMode(mode === "plan" ? "off" : "plan", ctx);
     },
   });
 
-  pi.registerCommand("execute-plan", {
-    description: "Execute the current approved plan",
+  pi.registerCommand("normal", {
+    description: "Exit ask/plan mode and return to normal mode",
     handler: async (_args, ctx) => {
-      if (planSteps.length === 0) {
-        ctx.ui.notify("No plan steps are available.", "warning");
+      if (mode === "off") {
+        ctx.ui.notify("Already in normal mode.", "info");
         return;
       }
-      startExecution(ctx);
+      enterMode("off", ctx);
     },
   });
 
@@ -186,14 +148,14 @@ export default function askPlanExtension(pi: ExtensionAPI): void {
     if (event.toolName === "edit" || event.toolName === "write") {
       return {
         block: true,
-        reason: `${mode} mode is read-only. Use /${mode} to leave ${mode} mode before modifying files.`,
+        reason: `${mode} mode is read-only. Use /normal to leave ${mode} mode before modifying files.`,
       };
     }
 
     if (isToolCallEventType("bash", event) && !isSafeReadOnlyCommand(event.input.command)) {
       return {
         block: true,
-        reason: `${mode} mode blocks non-read-only bash commands.\nCommand: ${event.input.command}`,
+        reason: `${mode} mode blocks non-read-only bash commands.\nUse /normal to leave ${mode} mode.\nCommand: ${event.input.command}`,
       };
     }
   });
@@ -233,22 +195,6 @@ Rules:
         },
       };
     }
-
-    if (mode === "execute" && planSteps.length > 0) {
-      const remaining = planSteps.filter((step) => !step.completed);
-      return {
-        message: {
-          customType: "plan-execution-context",
-          content: `[EXECUTING APPROVED PLAN]
-Remaining steps:
-${formatPlanSteps(remaining)}
-
-Execute the remaining steps in order.
-After completing a step, include [DONE:n] in your response.`,
-          display: false,
-        },
-      };
-    }
   });
 
   pi.on("agent_end", async (event, ctx) => {
@@ -276,7 +222,7 @@ After completing a step, include [DONE:n] in your response.`,
       pi.sendMessage(
         {
           customType: "ask-plan-next-step",
-          content: "Review the extracted plan, then run /execute-plan to start implementation.",
+          content: "Review the extracted plan, then use /normal to exit plan mode and start implementation.",
           display: true,
         },
         { triggerTurn: false },
@@ -285,43 +231,18 @@ After completing a step, include [DONE:n] in your response.`,
     }
 
     const choice = await ctx.ui.select("Plan complete", [
-      "Execute the plan",
+      "Exit plan mode (normal)",
       "Stay in plan mode",
       "Refine the plan",
     ]);
 
-    if (choice === "Execute the plan") {
-      startExecution(ctx);
+    if (choice === "Exit plan mode (normal)") {
+      enterMode("off", ctx);
     } else if (choice === "Refine the plan") {
       const refinement = await ctx.ui.editor("Refine the plan:", "");
       if (refinement?.trim()) {
         pi.sendUserMessage(refinement.trim());
       }
-    }
-  });
-
-  pi.on("turn_end", async (event, ctx) => {
-    if (mode !== "execute" || planSteps.length === 0) return;
-    if (!isAssistantMessage(event.message)) return;
-
-    if (markCompletedSteps(getTextContent(event.message), planSteps) > 0) {
-      updateStatus(ctx);
-      persistState();
-    }
-
-    if (planSteps.every((step) => step.completed)) {
-      pi.sendMessage(
-        {
-          customType: "ask-plan-complete",
-          content: `Plan complete.\n\n${formatPlanSteps(planSteps)}`,
-          display: true,
-        },
-        { triggerTurn: false },
-      );
-      mode = "off";
-      planSteps = [];
-      updateStatus(ctx);
-      persistState();
     }
   });
 
