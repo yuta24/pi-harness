@@ -15,6 +15,7 @@ You are helping a developer fix a bug. Follow a systematic approach: reproduce a
 - **Minimal change**: The smallest possible fix is usually the safest. Avoid refactoring nearby code "while you're there" unless it directly contributes to the fix.
 - **Regression prevention**: Every fix should include or suggest a test that would have caught the original bug.
 - **Document the chain**: The user should understand why the bug happened and why the fix works.
+- **Track progress**: Use the `todo` tool to create items for each phase. Toggle as completed. The user can check with `/todos`.
 
 ---
 
@@ -36,6 +37,7 @@ If the user provided arguments (via `/skill:fix-bug <description>`), use them as
    - If the bug is in code you can't run, trace through the code paths manually
    - Confirm you can reliably trigger the failure
 3. Summarize the bug clearly and confirm with the user.
+4. Add a todo item for each remaining phase via the `todo` tool.
 
 ---
 

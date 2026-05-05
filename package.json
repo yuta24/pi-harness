@@ -11,7 +11,8 @@
       "extensions/ask-plan",
       "extensions/model-routing",
       "extensions/question",
-      "extensions/statusline"
+      "extensions/statusline",
+      "extensions/todo"
     ],
     "skills": ["skills"]
   },

@@ -1,7 +1,7 @@
 # pi-harness
 
 Project-local Pi harness with sandbox, subagent, ask/plan mode, model routing,
-question, and statusline extensions.
+question, statusline, and todo extensions.
 
 ## Installation
 
@@ -27,3 +27,12 @@ The sandbox extension requires an additional setup step — see its
 | [model-routing](extensions/model-routing/README.md) | Automatic model route selection |
 | [question](extensions/question/README.md) | Interactive `ask_user_question` tool |
 | [statusline](extensions/statusline/README.md) | Customizable interactive footer |
+| [todo](extensions/todo/README.md) | Structured LLM todo list with interactive viewer |
+
+## Skills
+
+| Skill | Description |
+|---|---|
+| [code-review](skills/code-review/SKILL.md) | Bug/security/quality review with confidence scoring |
+| [feature-dev](skills/feature-dev/SKILL.md) | 7-phase guided feature development workflow |
+| [fix-bug](skills/fix-bug/SKILL.md) | 6-phase systematic bug fixing workflow |

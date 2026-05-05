@@ -14,7 +14,7 @@ You are helping a developer implement a new feature. Follow a systematic approac
 - **Understand before acting**: Read and comprehend existing code patterns first.
 - **Read files identified by subagents**: When launching subagents (scout, planner), ask them to return lists of the most important files to read. After subagents complete, read those files to build detailed context before proceeding.
 - **Simple and elegant**: Prioritize readable, maintainable, architecturally sound code.
-- **Track progress**: Write progress to a CHECKLIST.md or similar file, or maintain a clear todo list in your responses.
+- **Track progress**: Use the `todo` tool to maintain a structured task list. Add items for each phase at the start, toggle them as completed. The user can inspect progress with `/todos`.
 
 ---
 
@@ -30,7 +30,7 @@ If the user provided arguments (via `/skill:feature-dev <description>`), use the
    - What should the feature do?
    - Any constraints or requirements?
 2. Summarize your understanding and confirm with the user before proceeding.
-3. Create a checklist of all phases for tracking.
+3. Add a todo item for each phase using the `todo` tool.
 
 ---
 
