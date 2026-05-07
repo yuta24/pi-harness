@@ -1,4 +1,5 @@
 import { existsSync, realpathSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
 export interface StatuslineConfig {
@@ -81,9 +82,17 @@ export function normalizeConfig(config: unknown): NormalizedStatuslineConfig {
   };
 }
 
+function expandTilde(command: string): string {
+  if (command.startsWith("~/")) {
+    return resolve(homedir(), command.slice(2));
+  }
+  return command;
+}
+
 export function resolveCommand(config: NormalizedStatuslineConfig, projectRoot: string): string {
   const root = realpathSync(resolve(projectRoot));
-  const commandPath = isAbsolute(config.command) ? resolve(config.command) : resolve(root, config.command);
+  const expandedCommand = expandTilde(config.command);
+  const commandPath = isAbsolute(expandedCommand) ? resolve(expandedCommand) : resolve(root, expandedCommand);
 
   if (!existsSync(commandPath)) throw new Error(`statusline command does not exist: ${config.command}`);
 
