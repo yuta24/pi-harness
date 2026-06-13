@@ -101,8 +101,8 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 		handler: async (_args, ctx) => togglePlanMode(ctx),
 	});
 
-	pi.registerCommand("todos", {
-		description: "Show current plan todo list",
+	pi.registerCommand("plan-todos", {
+		description: "Show current plan-mode todo list",
 		handler: async (_args, ctx) => {
 			if (todoItems.length === 0) {
 				ctx.ui.notify("No todos. Create a plan first with /plan", "info");
