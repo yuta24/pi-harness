@@ -21,13 +21,13 @@ The sandbox extension requires an additional setup step — see its
 
 | Extension | Description |
 |---|---|
-| [sandbox](extensions/sandbox/README.md) | OS-level sandboxing for bash commands |
-| [subagent](extensions/subagent/README.md) | Isolated `pi` subprocess delegation |
-| [ask-plan](extensions/ask-plan/README.md) | Read-only ask and plan modes |
-| [model-routing](extensions/model-routing/README.md) | Automatic model route selection |
-| [question](extensions/question/README.md) | Interactive `ask_user_question` tool |
-| [statusline](extensions/statusline/README.md) | Customizable interactive footer |
-| [todo](extensions/todo/README.md) | Structured LLM todo list with interactive viewer |
+| [sandbox](extensions/sandbox/README.md) | OS-level sandboxing for Pi bash commands |
+| [subagent](extensions/subagent/README.md) | Delegation to isolated specialized Pi subprocesses |
+| [ask-plan](extensions/ask-plan/README.md) | Read-only ask and planning modes with guarded execution |
+| [model-routing](extensions/model-routing/README.md) | Prompt-based model and thinking-level route selection |
+| [question](extensions/question/README.md) | Interactive clarification tool for assistant questions |
+| [statusline](extensions/statusline/README.md) | Project-configurable interactive footer command |
+| [todo](extensions/todo/README.md) | Branch-aware in-session todo tool with `/todos` viewer |
 
 ## Skills
 
