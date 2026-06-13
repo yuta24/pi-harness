@@ -16,6 +16,15 @@ Config files are merged, with project-local config taking precedence:
 Rules are simple glob patterns. `*` matches any text, and `?` matches one
 character.
 
+For path-based tools, matching is done against multiple normalized forms of the
+same path:
+
+- the original path from the tool call
+- an absolute path
+- a path relative to the current working directory
+- a `./`-prefixed relative path
+- a `~`-relative path when the file is under the home directory
+
 Supported tools:
 
 - `bash` matches the command text
