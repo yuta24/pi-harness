@@ -12,6 +12,7 @@
       "extensions/plan-mode",
       "extensions/notify.ts",
       "extensions/otel.ts",
+      "extensions/permission-gate.ts",
       "extensions/question.ts",
       "extensions/questionnaire.ts",
       "extensions/statusline.ts",
