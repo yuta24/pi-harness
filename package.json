@@ -8,7 +8,8 @@
     "extensions": [
       "extensions/sandbox",
       "extensions/subagent",
-      "extensions/ask-plan",
+      "extensions/ask.ts",
+      "extensions/plan-mode",
       "extensions/model-routing",
       "extensions/question.ts",
       "extensions/questionnaire.ts",

@@ -1,7 +1,7 @@
 # pi-harness
 
-Project-local Pi harness with sandbox, subagent, ask/plan mode, model routing,
-question, statusline, and todo extensions.
+Project-local Pi harness with sandbox, subagent, ask mode, plan mode, model
+routing, question, statusline, and todo extensions.
 
 ## Installation
 
@@ -23,7 +23,8 @@ The sandbox extension requires an additional setup step — see its
 |---|---|
 | [sandbox](extensions/sandbox/README.md) | OS-level sandboxing for Pi bash commands |
 | [subagent](extensions/subagent/README.md) | Delegation to isolated specialized Pi subprocesses |
-| [ask-plan](extensions/ask-plan/README.md) | Read-only ask and planning modes with guarded execution |
+| [ask](extensions/ask/README.md) | Read-only Q&A mode with guarded tools |
+| [plan-mode](extensions/plan-mode/README.md) | Read-only planning mode with tracked execution |
 | [model-routing](extensions/model-routing/README.md) | Prompt-based model and thinking-level route selection |
 | [question](extensions/question/README.md) | Interactive option picker for assistant questions |
 | [questionnaire](extensions/questionnaire/README.md) | Multi-question form for structured user input |
