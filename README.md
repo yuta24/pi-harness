@@ -27,7 +27,7 @@ The sandbox extension requires an additional setup step — see its
 | [model-routing](extensions/model-routing/README.md) | Prompt-based model and thinking-level route selection |
 | [question](extensions/question/README.md) | Interactive option picker for assistant questions |
 | [questionnaire](extensions/questionnaire/README.md) | Multi-question form for structured user input |
-| [statusline](extensions/statusline/README.md) | Project-configurable interactive footer command |
+| [statusline](extensions/statusline/README.md) | Persistent footer status for turn progress |
 | [todo](extensions/todo/README.md) | Branch-aware in-session todo tool with `/todos` viewer |
 
 ## Skills

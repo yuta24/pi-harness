@@ -12,7 +12,7 @@
       "extensions/model-routing",
       "extensions/question.ts",
       "extensions/questionnaire.ts",
-      "extensions/statusline",
+      "extensions/statusline.ts",
       "extensions/todo.ts"
     ],
     "skills": ["skills"]

@@ -1,63 +1,47 @@
-# Pi Statusline Extension
+# Statusline Extension
 
-Project-local Pi extension that replaces the interactive footer with stdout
-from a user-configurable statusline script.
+Persistent footer status demo for Pi.
 
-## Configuration
+This extension is based on the official `status-line.ts` example. It uses
+`ctx.ui.setStatus()` to show turn progress in Pi's footer status area.
 
-Edit `.pi/statusline.json`:
+## Loading In This Harness
+
+This repository registers the extension from the root `package.json`:
 
 ```json
 {
-  "enabled": true,
-  "command": ".pi/statusline.js",
-  "args": [],
-  "timeoutMs": 500,
-  "maxOutputChars": 240
+  "pi": {
+    "extensions": ["extensions/statusline.ts"]
+  }
 }
 ```
 
-The configured script must be executable:
+After installing this harness, use `pi config` to enable or disable the
+`statusline` extension:
 
 ```sh
-chmod +x .pi/statusline.js
+pi install git:github.com/yuta24/pi-harness
+pi config
 ```
 
-## Security Model
+For local development, load this extension directly:
 
-- The command is executed with `spawn(command, args)`, never through a shell.
-- The command must resolve inside the project root.
-- Commands inside `.git` are rejected.
-- The command must be an executable file.
-- Timeout and output size are clamped.
-- Refresh interval is fixed by the extension and is not user-configurable.
-- ANSI and terminal control sequences are stripped from script output.
-- The child receives a minimal environment: `PATH` plus `PI_*` statusline
-  variables.
-- Status context is also written to stdin as JSON.
+```sh
+pi --no-extensions -e /Users/yuta24/ghq/github.com/yuta24/pi-harness/extensions/statusline.ts
+```
 
-This still runs local code as the current user. Treat `.pi/statusline.json` and
-the configured script as trusted project configuration.
+From the repository root:
 
-## Commands
+```sh
+pi --no-extensions -e ./extensions/statusline.ts
+```
 
-- `/statusline` shows current status.
-- `/statusline reload` reloads `.pi/statusline.json`.
-- `/statusline on` enables the custom footer.
-- `/statusline off` restores Pi's default footer.
+## Behavior
 
-## Script Input
+- On session start, the footer status shows `Ready`.
+- On each turn start, it shows the current turn count.
+- On each turn end, it marks that turn complete.
 
-Environment variables:
-
-- `PI_PROVIDER`
-- `PI_MODEL`
-- `PI_CWD`
-- `PI_GIT_BRANCH`
-- `PI_CONTEXT_PERCENT`
-- `PI_INPUT_TOKENS`
-- `PI_OUTPUT_TOKENS`
-- `PI_COST`
-- `PI_EXTENSION_STATUSES` as JSON
-
-The same data is sent to stdin as JSON for scripts that prefer structured input.
+This extension does not run project-local scripts or replace the full footer.
+For a full custom footer example, see the upstream `custom-footer.ts` example.
