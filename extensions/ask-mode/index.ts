@@ -12,6 +12,7 @@ import { isSafeCommand } from "../plan-mode/utils.ts";
 
 const ASK_MODE_TOOLS = ["read", "bash", "grep", "find", "ls", "question", "questionnaire"];
 const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write"];
+const FOLLOW_UP_DELIVERY = { deliverAs: "followUp", streamingBehavior: "followUp" } as const;
 
 export default function askModeExtension(pi: ExtensionAPI): void {
 	let askModeEnabled = false;
@@ -50,8 +51,19 @@ export default function askModeExtension(pi: ExtensionAPI): void {
 	}
 
 	pi.registerCommand("ask", {
-		description: "Toggle ask mode (read-only Q&A)",
-		handler: async (_args, ctx) => setAskMode(!askModeEnabled, ctx),
+		description: "Toggle ask mode, or ask a read-only question",
+		handler: async (args, ctx) => {
+			const question = args?.trim();
+			if (question) {
+				if (!askModeEnabled) {
+					setAskMode(true, ctx);
+				}
+				pi.sendUserMessage(question, FOLLOW_UP_DELIVERY);
+				return;
+			}
+
+			setAskMode(!askModeEnabled, ctx);
+		},
 	});
 
 	pi.registerShortcut(Key.ctrlAlt("a"), {
@@ -126,6 +138,25 @@ Behavior:
 				display: false,
 			},
 		};
+	});
+
+	pi.on("agent_end", async (_event, ctx) => {
+		if (!askModeEnabled || !ctx.hasUI) return;
+
+		const choice = await ctx.ui.select("Ask mode - what next?", [
+			"Ask a follow-up",
+			"Stay in ask mode",
+			"Exit ask mode",
+		]);
+
+		if (choice === "Ask a follow-up") {
+			const followUp = await ctx.ui.editor("Ask a follow-up:", "");
+			if (followUp?.trim()) {
+				pi.sendUserMessage(followUp.trim(), FOLLOW_UP_DELIVERY);
+			}
+		} else if (choice === "Exit ask mode") {
+			setAskMode(false, ctx);
+		}
 	});
 
 	pi.on("session_start", async (_event, ctx) => {
