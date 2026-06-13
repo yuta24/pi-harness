@@ -1,63 +1,210 @@
-# Pi Subagent Extension
+# Subagent Extension
 
-Project-local Pi extension that adds a `subagent` tool for delegating bounded
-tasks to isolated `pi` subprocesses.
+Delegate tasks to specialized subagents with isolated context windows.
 
-## Modes
+## Features
 
-- Single: `{ "agent": "scout", "task": "Find the auth flow" }`
-- Parallel: `{ "tasks": [{ "agent": "scout", "task": "Find models" }] }`
-- Chain: `{ "chain": [{ "agent": "scout", "task": "Find X" }, { "agent": "planner", "task": "Plan from {previous}" }] }`
+- **Isolated context**: Each subagent runs in a separate `pi` process
+- **Streaming output**: See tool calls and progress as they happen
+- **Parallel streaming**: All parallel tasks stream updates simultaneously
+- **Markdown rendering**: Final output rendered with proper formatting (expanded view)
+- **Usage tracking**: Shows turns, tokens, cost, and context usage per agent
+- **Abort support**: Ctrl+C propagates to kill subagent processes
 
-Each subagent has a watchdog timeout. Default is `timeoutSeconds: 1800`.
-Set `timeoutSeconds: 0` to disable it.
+## Structure
 
-## Agents
+```
+subagent/
+├── README.md            # This file
+├── index.ts             # The extension (entry point)
+├── agents.ts            # Agent discovery logic
+├── agents/              # Sample agent definitions
+│   ├── scout.md         # Fast recon, returns compressed context
+│   ├── planner.md       # Creates implementation plans
+│   ├── reviewer.md      # Code review
+│   └── worker.md        # General-purpose (full capabilities)
+└── prompts/             # Workflow presets (prompt templates)
+    ├── implement.md     # scout -> planner -> worker
+    ├── scout-and-plan.md    # scout -> planner (no implementation)
+    └── implement-and-review.md  # worker -> reviewer -> worker
+```
 
-Agents are markdown files with frontmatter:
+## Loading In This Harness
+
+This repository registers the extension from the root `package.json`:
+
+```json
+{
+  "pi": {
+    "extensions": ["extensions/subagent"]
+  }
+}
+```
+
+After installing this harness, use `pi config` to enable or disable the
+`subagent` extension:
+
+```sh
+pi install git:github.com/yuta24/pi-harness
+pi config
+```
+
+For local development, load this extension directly:
+
+```sh
+pi --no-extensions -e /Users/yuta24/ghq/github.com/yuta24/pi-harness/extensions/subagent/index.ts
+```
+
+From the repository root:
+
+```sh
+pi --no-extensions -e ./extensions/subagent/index.ts
+```
+
+## Agent And Prompt Installation
+
+The extension discovers agents from these locations:
+
+- `~/.pi/agent/agents/*.md` for user-level agents
+- `.pi/agents/*.md` for project-level agents
+
+Project-level agents are only used when the tool call sets `agentScope` to
+`"project"` or `"both"`.
+
+This directory includes sample agents and workflow prompts. To install them as
+user-level resources, symlink or copy them into Pi's agent directory:
+
+```bash
+# From the pi-harness repository root
+mkdir -p ~/.pi/agent/agents
+for f in extensions/subagent/agents/*.md; do
+  ln -sf "$(pwd)/$f" ~/.pi/agent/agents/$(basename "$f")
+done
+
+mkdir -p ~/.pi/agent/prompts
+for f in extensions/subagent/prompts/*.md; do
+  ln -sf "$(pwd)/$f" ~/.pi/agent/prompts/$(basename "$f")
+done
+```
+
+## Security Model
+
+This tool executes a separate `pi` subprocess with a delegated system prompt and tool/model configuration.
+
+**Project-local agents** (`.pi/agents/*.md`) are repo-controlled prompts that can instruct the model to read files, run bash commands, etc.
+
+**Default behavior:** Only loads **user-level agents** from `~/.pi/agent/agents`.
+
+To enable project-local agents, pass `agentScope: "both"` (or `"project"`). Only do this for repositories you trust.
+
+When running interactively, the tool prompts for confirmation before running project-local agents. Set `confirmProjectAgents: false` to disable.
+
+## Usage
+
+### Single agent
+```
+Use scout to find all authentication code
+```
+
+### Parallel execution
+```
+Run 2 scouts in parallel: one to find models, one to find providers
+```
+
+### Chained workflow
+```
+Use a chain: first have scout find the read tool, then have planner suggest improvements
+```
+
+### Workflow prompts
+```
+/implement add Redis caching to the session store
+/scout-and-plan refactor auth to support OAuth
+/implement-and-review add input validation to API endpoints
+```
+
+## Tool Modes
+
+| Mode | Parameter | Description |
+|------|-----------|-------------|
+| Single | `{ agent, task }` | One agent, one task |
+| Parallel | `{ tasks: [...] }` | Multiple agents run concurrently (max 8, 4 concurrent) |
+| Chain | `{ chain: [...] }` | Sequential with `{previous}` placeholder |
+
+## Output Display
+
+**Collapsed view** (default):
+- Status icon (✓/✗/⏳) and agent name
+- Last 5-10 items (tool calls and text)
+- Usage stats: `3 turns ↑input ↓output RcacheRead WcacheWrite $cost ctx:contextTokens model`
+
+**Expanded view** (Ctrl+O):
+- Full task text
+- All tool calls with formatted arguments
+- Final output rendered as Markdown
+- Per-task usage (for chain/parallel)
+
+**Parallel mode streaming**:
+- Shows all tasks with live status (⏳ running, ✓ done, ✗ failed)
+- Updates as each task makes progress
+- Shows "2/3 done, 1 running" status
+- Returns each completed task's final output to the parent model, capped at 50 KB per task
+- Returns failure diagnostics from stderr/error messages when a child exits before producing output
+
+**Tool call formatting** (mimics built-in tools):
+- `$ command` for bash
+- `read ~/path:1-10` for read
+- `grep /pattern/ in ~/path` for grep
+- etc.
+
+## Agent Definitions
+
+Agents are markdown files with YAML frontmatter:
 
 ```markdown
 ---
-name: scout
-description: Fast codebase reconnaissance
+name: my-agent
+description: What this agent does
 tools: read, grep, find, ls
 model: claude-haiku-4-5
 ---
 
-System prompt goes here.
+System prompt for the agent goes here.
 ```
 
-Locations:
+**Locations:**
+- `~/.pi/agent/agents/*.md` - User-level (always loaded)
+- `.pi/agents/*.md` - Project-level (only with `agentScope: "project"` or `"both"`)
 
-- `.pi/agents/*.md` for project-local agents
-- `~/.pi/agent/agents/*.md` for user-level agents
+Project agents override user agents with the same name when `agentScope: "both"`.
 
-Default `agentScope` is `project`. Pass `user` or `both` when needed.
+## Sample Agents
 
-Use `/agents`, `/agents user`, `/agents project`, or `/agents both` inside Pi to
-inspect discovered agents.
+| Agent | Purpose | Model | Tools |
+|-------|---------|-------|-------|
+| `scout` | Fast codebase recon | Haiku | read, grep, find, ls, bash |
+| `planner` | Implementation plans | Sonnet | read, grep, find, ls |
+| `reviewer` | Code review | Sonnet | read, grep, find, ls, bash |
+| `worker` | General-purpose | Sonnet | (all default) |
 
-## Security
+## Workflow Prompts
 
-Project-local agents are repo-controlled prompts. The tool asks for confirmation
-before running them in interactive mode. Set `confirmProjectAgents: false` only
-for trusted repositories.
+| Prompt | Flow |
+|--------|------|
+| `/implement <query>` | scout → planner → worker |
+| `/scout-and-plan <query>` | scout → planner |
+| `/implement-and-review <query>` | worker → reviewer → worker |
 
-Each subagent runs as a separate `pi --mode json -p --no-session` process with
-its own context window.
+## Error Handling
 
-Child processes are started with `--no-extensions` and explicitly reload only
-the project sandbox extension when present. This prevents recursive subagent
-calls while keeping assistant `bash` tool calls sandboxed.
+- **Exit code != 0**: Tool returns error with stderr/output
+- **stopReason "error"**: LLM error propagated with error message
+- **stopReason "aborted"**: User abort (Ctrl+C) kills subprocess, throws error
+- **Chain mode**: Stops at first failing step, reports which step failed
 
-Agent `cwd` values must stay inside the project root. Project-local agents are
-blocked in non-interactive mode unless `confirmProjectAgents: false` is set.
+## Limitations
 
-Tool restrictions come from the selected agent's frontmatter. Agents without a
-`tools` frontmatter entry receive only Pi built-in tools (`read`, `bash`, `edit`,
-`write`, `grep`, `find`, `ls`), not extension tools.
-
-Unknown or extension tool names in agent frontmatter are ignored and reported in
-the subagent result.
-
-Large stderr and final outputs are truncated to keep tool results bounded.
+- Output truncated to last 10 items in collapsed view (expand to see all)
+- Parallel model-visible output is capped at 50 KB per task; full results remain in tool details
+- Agents discovered fresh on each invocation (allows editing mid-session)
+- Parallel mode limited to 8 tasks, 4 concurrent

@@ -1,144 +1,126 @@
 /**
- * Agent discovery for the subagent extension.
- *
- * Agents are markdown files with YAML-like frontmatter:
- *
- * ---
- * name: scout
- * description: Fast codebase reconnaissance
- * tools: read, grep, find, ls
- * model: claude-haiku-4-5
- * ---
+ * Agent discovery and configuration
  */
+
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir, parseFrontmatter } from "@mariozechner/pi-coding-agent";
+import { getAgentDir, parseFrontmatter } from "@earendil-works/pi-coding-agent";
 
 export type AgentScope = "user" | "project" | "both";
-export type AgentSource = "user" | "project";
 
 export interface AgentConfig {
-  name: string;
-  description: string;
-  tools?: string[];
-  model?: string;
-  systemPrompt: string;
-  source: AgentSource;
-  filePath: string;
+	name: string;
+	description: string;
+	tools?: string[];
+	model?: string;
+	systemPrompt: string;
+	source: "user" | "project";
+	filePath: string;
 }
 
 export interface AgentDiscoveryResult {
-  agents: AgentConfig[];
-  userAgentsDir: string;
-  projectAgentsDir: string | null;
-  projectRoot: string | null;
+	agents: AgentConfig[];
+	projectAgentsDir: string | null;
 }
 
-interface AgentFrontmatter {
-  name?: string;
-  description?: string;
-  tools?: string;
-  model?: string;
+function loadAgentsFromDir(dir: string, source: "user" | "project"): AgentConfig[] {
+	const agents: AgentConfig[] = [];
+
+	if (!fs.existsSync(dir)) {
+		return agents;
+	}
+
+	let entries: fs.Dirent[];
+	try {
+		entries = fs.readdirSync(dir, { withFileTypes: true });
+	} catch {
+		return agents;
+	}
+
+	for (const entry of entries) {
+		if (!entry.name.endsWith(".md")) continue;
+		if (!entry.isFile() && !entry.isSymbolicLink()) continue;
+
+		const filePath = path.join(dir, entry.name);
+		let content: string;
+		try {
+			content = fs.readFileSync(filePath, "utf-8");
+		} catch {
+			continue;
+		}
+
+		const { frontmatter, body } = parseFrontmatter<Record<string, string>>(content);
+
+		if (!frontmatter.name || !frontmatter.description) {
+			continue;
+		}
+
+		const tools = frontmatter.tools
+			?.split(",")
+			.map((t: string) => t.trim())
+			.filter(Boolean);
+
+		agents.push({
+			name: frontmatter.name,
+			description: frontmatter.description,
+			tools: tools && tools.length > 0 ? tools : undefined,
+			model: frontmatter.model,
+			systemPrompt: body,
+			source,
+			filePath,
+		});
+	}
+
+	return agents;
 }
 
-function loadAgentsFromDir(dir: string, source: AgentSource): AgentConfig[] {
-  if (!fs.existsSync(dir)) return [];
-
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-
-  const agents: AgentConfig[] = [];
-  for (const entry of entries) {
-    if (!entry.name.endsWith(".md")) continue;
-    if (!entry.isFile() && !entry.isSymbolicLink()) continue;
-
-    const filePath = path.join(dir, entry.name);
-    let content: string;
-    try {
-      content = fs.readFileSync(filePath, "utf-8");
-    } catch {
-      continue;
-    }
-
-    const { frontmatter, body } = parseFrontmatter<AgentFrontmatter>(content);
-    if (!frontmatter.name || !frontmatter.description) continue;
-
-    const tools = frontmatter.tools
-      ?.split(",")
-      .map((tool) => tool.trim())
-      .filter(Boolean);
-
-    agents.push({
-      name: frontmatter.name,
-      description: frontmatter.description,
-      tools: tools && tools.length > 0 ? tools : undefined,
-      model: frontmatter.model,
-      systemPrompt: body.trim(),
-      source,
-      filePath,
-    });
-  }
-
-  return agents.sort((a, b) => a.name.localeCompare(b.name));
+function isDirectory(p: string): boolean {
+	try {
+		return fs.statSync(p).isDirectory();
+	} catch {
+		return false;
+	}
 }
 
-function isDirectory(filePath: string): boolean {
-  try {
-    return fs.statSync(filePath).isDirectory();
-  } catch {
-    return false;
-  }
-}
+function findNearestProjectAgentsDir(cwd: string): string | null {
+	let currentDir = cwd;
+	while (true) {
+		const candidate = path.join(currentDir, ".pi", "agents");
+		if (isDirectory(candidate)) return candidate;
 
-function findNearestProjectRoot(cwd: string): string | null {
-  let current = cwd;
-  while (true) {
-    if (isDirectory(path.join(current, ".pi", "agents"))) return current;
-
-    const parent = path.dirname(current);
-    if (parent === current) return null;
-    current = parent;
-  }
+		const parentDir = path.dirname(currentDir);
+		if (parentDir === currentDir) return null;
+		currentDir = parentDir;
+	}
 }
 
 export function discoverAgents(cwd: string, scope: AgentScope): AgentDiscoveryResult {
-  const userAgentsDir = path.join(getAgentDir(), "agents");
-  const projectRoot = findNearestProjectRoot(cwd);
-  const projectAgentsDir = projectRoot ? path.join(projectRoot, ".pi", "agents") : null;
+	const userDir = path.join(getAgentDir(), "agents");
+	const projectAgentsDir = findNearestProjectAgentsDir(cwd);
 
-  const userAgents = scope === "project" ? [] : loadAgentsFromDir(userAgentsDir, "user");
-  const projectAgents =
-    scope === "user" || !projectAgentsDir ? [] : loadAgentsFromDir(projectAgentsDir, "project");
+	const userAgents = scope === "project" ? [] : loadAgentsFromDir(userDir, "user");
+	const projectAgents = scope === "user" || !projectAgentsDir ? [] : loadAgentsFromDir(projectAgentsDir, "project");
 
-  const byName = new Map<string, AgentConfig>();
-  if (scope === "both") {
-    for (const agent of userAgents) byName.set(agent.name, agent);
-    for (const agent of projectAgents) byName.set(agent.name, agent);
-  } else {
-    for (const agent of scope === "user" ? userAgents : projectAgents) {
-      byName.set(agent.name, agent);
-    }
-  }
+	const agentMap = new Map<string, AgentConfig>();
 
-  return {
-    agents: Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name)),
-    userAgentsDir,
-    projectAgentsDir,
-    projectRoot,
-  };
+	if (scope === "both") {
+		for (const agent of userAgents) agentMap.set(agent.name, agent);
+		for (const agent of projectAgents) agentMap.set(agent.name, agent);
+	} else if (scope === "user") {
+		for (const agent of userAgents) agentMap.set(agent.name, agent);
+	} else {
+		for (const agent of projectAgents) agentMap.set(agent.name, agent);
+	}
+
+	return { agents: Array.from(agentMap.values()), projectAgentsDir };
 }
 
-export function formatAgentList(agents: AgentConfig[]): string {
-  if (agents.length === 0) return "none";
-  return agents
-    .map((agent) => {
-      const tools = agent.tools?.length ? ` tools=${agent.tools.join(",")}` : "";
-      const model = agent.model ? ` model=${agent.model}` : "";
-      return `- ${agent.name} (${agent.source})${model}${tools}: ${agent.description}`;
-    })
-    .join("\n");
+export function formatAgentList(agents: AgentConfig[], maxItems: number): { text: string; remaining: number } {
+	if (agents.length === 0) return { text: "none", remaining: 0 };
+	const listed = agents.slice(0, maxItems);
+	const remaining = agents.length - listed.length;
+	return {
+		text: listed.map((a) => `${a.name} (${a.source}): ${a.description}`).join("; "),
+		remaining,
+	};
 }
