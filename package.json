@@ -11,6 +11,7 @@
       "extensions/ask-mode",
       "extensions/plan-mode",
       "extensions/notify.ts",
+      "extensions/otel.ts",
       "extensions/question.ts",
       "extensions/questionnaire.ts",
       "extensions/statusline.ts",
