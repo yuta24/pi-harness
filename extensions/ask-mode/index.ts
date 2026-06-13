@@ -25,7 +25,7 @@ export default function askModeExtension(pi: ExtensionAPI): void {
 
 	function updateStatus(ctx: ExtensionContext): void {
 		if (askModeEnabled) {
-			ctx.ui.setStatus("ask-mode", ctx.ui.theme.fg("warning", "ask"));
+			ctx.ui.setStatus("ask-mode", ctx.ui.theme.fg("warning", "ask: read-only"));
 		} else {
 			ctx.ui.setStatus("ask-mode", undefined);
 		}
@@ -143,18 +143,11 @@ Behavior:
 	pi.on("agent_end", async (_event, ctx) => {
 		if (!askModeEnabled || !ctx.hasUI) return;
 
-		const choice = await ctx.ui.select("Ask mode - what next?", [
-			"Ask a follow-up",
-			"Stay in ask mode",
-			"Exit ask mode",
-		]);
-
-		if (choice === "Ask a follow-up") {
-			const followUp = await ctx.ui.editor("Ask a follow-up:", "");
-			if (followUp?.trim()) {
-				pi.sendUserMessage(followUp.trim(), FOLLOW_UP_DELIVERY);
-			}
-		} else if (choice === "Exit ask mode") {
+		const followUp = await ctx.ui.editor("Ask follow-up (empty/Esc = exit ask mode):", "");
+		const question = followUp?.trim();
+		if (question) {
+			pi.sendUserMessage(question, FOLLOW_UP_DELIVERY);
+		} else {
 			setAskMode(false, ctx);
 		}
 	});
