@@ -8,6 +8,7 @@
     "extensions": [
       "extensions/sandbox",
       "extensions/subagent",
+      "extensions/ask-mode",
       "extensions/plan-mode",
       "extensions/question.ts",
       "extensions/questionnaire.ts",
