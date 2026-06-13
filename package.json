@@ -9,7 +9,6 @@
       "extensions/sandbox",
       "extensions/subagent",
       "extensions/plan-mode",
-      "extensions/model-routing",
       "extensions/question.ts",
       "extensions/questionnaire.ts",
       "extensions/statusline.ts",
