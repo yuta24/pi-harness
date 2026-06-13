@@ -12,7 +12,7 @@
       "extensions/model-routing",
       "extensions/question",
       "extensions/statusline",
-      "extensions/todo"
+      "extensions/todo.ts"
     ],
     "skills": ["skills"]
   },
