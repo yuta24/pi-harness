@@ -39,6 +39,17 @@ interface TelemetryConfig {
 	serviceVersion: string;
 	exportContent: boolean;
 	debug: boolean;
+	batchSize: number;
+	flushIntervalMs: number;
+	timeoutMs: number;
+	retryCount: number;
+	maxQueueSize: number;
+}
+
+interface ExportableSpan {
+	span: SpanRecord;
+	endTimeUnixNano: string;
+	statusCode: "OK" | "ERROR";
 }
 
 const SCOPE_NAME = "pi-harness.otel";
@@ -58,6 +69,18 @@ function randomHex(bytes: number): string {
 function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
 	if (value === undefined) return defaultValue;
 	return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+}
+
+function parsePositiveInt(value: string | undefined, defaultValue: number): number {
+	if (value === undefined) return defaultValue;
+	const parsed = Number.parseInt(value, 10);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultValue;
+}
+
+function parseNonNegativeInt(value: string | undefined, defaultValue: number): number {
+	if (value === undefined) return defaultValue;
+	const parsed = Number.parseInt(value, 10);
+	return Number.isFinite(parsed) && parsed >= 0 ? parsed : defaultValue;
 }
 
 function parseHeaders(value: string | undefined): Record<string, string> {
@@ -93,6 +116,11 @@ function loadConfig(): TelemetryConfig {
 		serviceVersion: process.env.PI_OTEL_SERVICE_VERSION ?? "1.0.0",
 		exportContent: parseBoolean(process.env.PI_OTEL_EXPORT_CONTENT, false),
 		debug: parseBoolean(process.env.PI_OTEL_DEBUG, false),
+		batchSize: parsePositiveInt(process.env.PI_OTEL_BATCH_SIZE, 32),
+		flushIntervalMs: parsePositiveInt(process.env.PI_OTEL_FLUSH_INTERVAL_MS, 5000),
+		timeoutMs: parsePositiveInt(process.env.PI_OTEL_TIMEOUT_MS, 3000),
+		retryCount: parseNonNegativeInt(process.env.PI_OTEL_RETRY_COUNT, 2),
+		maxQueueSize: parsePositiveInt(process.env.PI_OTEL_MAX_QUEUE_SIZE, 1000),
 	};
 }
 
@@ -159,96 +187,170 @@ function inputShape(event: ToolCallEvent, exportContent: boolean): Record<string
 }
 
 class OtlpExporter {
-	private pending: Promise<void>[] = [];
+	private spans: ExportableSpan[] = [];
+	private logs: LogRecord[] = [];
+	private flushTimer: ReturnType<typeof setTimeout> | undefined;
+	private flushPromise: Promise<void> | undefined;
+	private dropped = 0;
 
 	constructor(private readonly config: TelemetryConfig) {}
 
 	exportSpan(span: SpanRecord, endTimeUnixNano = nowNanos(), statusCode: "OK" | "ERROR" = "OK"): void {
 		if (!this.config.enabled) return;
+		this.enqueue("traces", { span, endTimeUnixNano, statusCode });
+	}
 
-		const body = {
+	exportLog(record: LogRecord): void {
+		if (!this.config.enabled) return;
+		this.enqueue("logs", record);
+	}
+
+	async flush(): Promise<void> {
+		if (this.flushTimer) {
+			clearTimeout(this.flushTimer);
+			this.flushTimer = undefined;
+		}
+		if (this.flushPromise) return this.flushPromise;
+
+		this.flushPromise = this.drain().finally(() => {
+			this.flushPromise = undefined;
+		});
+		return this.flushPromise;
+	}
+
+	private enqueue(signal: "traces", record: ExportableSpan): void;
+	private enqueue(signal: "logs", record: LogRecord): void;
+	private enqueue(signal: "traces" | "logs", record: ExportableSpan | LogRecord): void {
+		this.enforceQueueLimit(signal);
+		if (signal === "traces") this.spans.push(record as ExportableSpan);
+		else this.logs.push(record as LogRecord);
+
+		if (this.spans.length + this.logs.length >= this.config.batchSize) {
+			void this.flush();
+			return;
+		}
+
+		if (!this.flushTimer) {
+			this.flushTimer = setTimeout(() => {
+				this.flushTimer = undefined;
+				void this.flush();
+			}, this.config.flushIntervalMs);
+		}
+	}
+
+	private enforceQueueLimit(signal: "traces" | "logs"): void {
+		if (this.spans.length + this.logs.length < this.config.maxQueueSize) return;
+
+		const primaryQueue = signal === "traces" ? this.spans : this.logs;
+		const fallbackQueue = signal === "traces" ? this.logs : this.spans;
+		if (primaryQueue.length > 0) primaryQueue.shift();
+		else fallbackQueue.shift();
+		this.dropped++;
+
+		if (this.config.debug) {
+			console.error(`[otel] telemetry queue full; dropped ${this.dropped} record(s)`);
+		}
+	}
+
+	private async drain(): Promise<void> {
+		while (this.spans.length > 0 || this.logs.length > 0) {
+			const spans = this.spans.splice(0, this.config.batchSize);
+			const logs = this.logs.splice(0, this.config.batchSize);
+			await Promise.all([
+				spans.length > 0 ? this.send("traces", this.traceBody(spans)) : Promise.resolve(),
+				logs.length > 0 ? this.send("logs", this.logBody(logs)) : Promise.resolve(),
+			]);
+		}
+	}
+
+	private traceBody(records: ExportableSpan[]) {
+		return {
 			resourceSpans: [
 				{
 					resource: { attributes: resourceAttributes(this.config) },
 					scopeSpans: [
 						{
 							scope: { name: SCOPE_NAME, version: SCOPE_VERSION },
-							spans: [
-								{
-									traceId: span.traceId,
-									spanId: span.spanId,
-									parentSpanId: span.parentSpanId,
-									name: span.name,
-									kind: 1,
-									startTimeUnixNano: span.startTimeUnixNano,
-									endTimeUnixNano,
-									attributes: attributes(span.attributes),
-									status: { code: statusCode === "OK" ? 1 : 2 },
-								},
-							],
+							spans: records.map(({ span, endTimeUnixNano, statusCode }) => ({
+								traceId: span.traceId,
+								spanId: span.spanId,
+								parentSpanId: span.parentSpanId,
+								name: span.name,
+								kind: 1,
+								startTimeUnixNano: span.startTimeUnixNano,
+								endTimeUnixNano,
+								attributes: attributes(span.attributes),
+								status: { code: statusCode === "OK" ? 1 : 2 },
+							})),
 						},
 					],
 				},
 			],
 		};
-
-		this.send("traces", body);
 	}
 
-	exportLog(record: LogRecord): void {
-		if (!this.config.enabled) return;
-
-		const body = {
+	private logBody(records: LogRecord[]) {
+		return {
 			resourceLogs: [
 				{
 					resource: { attributes: resourceAttributes(this.config) },
 					scopeLogs: [
 						{
 							scope: { name: SCOPE_NAME, version: SCOPE_VERSION },
-							logRecords: [
-								{
-									timeUnixNano: record.timeUnixNano,
-									severityText: record.severityText,
-									body: { stringValue: record.body },
-									attributes: attributes(record.attributes),
-									traceId: record.traceId,
-									spanId: record.spanId,
-								},
-							],
+							logRecords: records.map((record) => ({
+								timeUnixNano: record.timeUnixNano,
+								severityText: record.severityText,
+								body: { stringValue: record.body },
+								attributes: attributes(record.attributes),
+								traceId: record.traceId,
+								spanId: record.spanId,
+							})),
 						},
 					],
 				},
 			],
 		};
-
-		this.send("logs", body);
 	}
 
-	async flush(): Promise<void> {
-		await Promise.allSettled(this.pending.splice(0));
-	}
+	private async send(signal: "traces" | "logs", body: unknown): Promise<void> {
+		const payload = JSON.stringify(body);
+		let lastError: unknown;
 
-	private send(signal: "traces" | "logs", body: unknown): void {
-		const request = fetch(endpointUrl(this.config, signal), {
-			method: "POST",
-			headers: {
-				"content-type": "application/json",
-				...this.config.headers,
-			},
-			body: JSON.stringify(body),
-		})
-			.then(async (response) => {
-				if (!response.ok && this.config.debug) {
-					console.error(`[otel] export ${signal} failed: ${response.status} ${await response.text()}`);
-				}
-			})
-			.catch((error) => {
-				if (this.config.debug) {
-					console.error(`[otel] export ${signal} failed: ${error instanceof Error ? error.message : String(error)}`);
-				}
-			});
+		for (let attempt = 0; attempt <= this.config.retryCount; attempt++) {
+			const controller = new AbortController();
+			const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
+			try {
+				const response = await fetch(endpointUrl(this.config, signal), {
+					method: "POST",
+					headers: {
+						"content-type": "application/json",
+						...this.config.headers,
+					},
+					body: payload,
+					signal: controller.signal,
+				});
+				if (response.ok) return;
 
-		this.pending.push(request);
+				const responseText = this.config.debug ? await response.text() : "";
+				lastError = new Error(`${response.status} ${responseText}`.trim());
+				if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429) {
+					break;
+				}
+			} catch (error) {
+				lastError = error;
+			} finally {
+				clearTimeout(timeout);
+			}
+
+			if (attempt < this.config.retryCount) {
+				await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+			}
+		}
+
+		if (this.config.debug) {
+			const message = lastError instanceof Error ? lastError.message : String(lastError);
+			console.error(`[otel] export ${signal} failed: ${message}`);
+		}
 	}
 }
 

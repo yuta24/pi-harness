@@ -39,6 +39,11 @@ Supported variables:
 | `PI_OTEL_SERVICE_VERSION` | `1.0.0` | OpenTelemetry service version |
 | `PI_OTEL_EXPORT_CONTENT` | `false` | Export prompt/input text when `true` |
 | `PI_OTEL_DEBUG` | `false` | Print export failures to stderr |
+| `PI_OTEL_BATCH_SIZE` | `32` | Max records per OTLP request |
+| `PI_OTEL_FLUSH_INTERVAL_MS` | `5000` | Max time before queued records are flushed |
+| `PI_OTEL_TIMEOUT_MS` | `3000` | Per-request export timeout |
+| `PI_OTEL_RETRY_COUNT` | `2` | Retry count for timeout, network, 408, 429, and 5xx failures |
+| `PI_OTEL_MAX_QUEUE_SIZE` | `1000` | Max queued telemetry records before oldest records are dropped |
 
 ## Local Collector Example
 
@@ -55,3 +60,11 @@ and pass authentication via `PI_OTEL_HEADERS`.
 ## Command
 
 Use `/otel-flush` to flush pending telemetry exports manually.
+
+## Reliability Behavior
+
+- Telemetry is batched to reduce collector overhead.
+- Failed exports are retried with a short linear backoff.
+- Non-retryable 4xx responses are dropped immediately.
+- A bounded in-memory queue prevents telemetry failures from blocking Pi.
+- Session shutdown and `/otel-flush` flush queued records before returning.
