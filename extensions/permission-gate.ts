@@ -14,6 +14,7 @@ type ToolGateConfig = Partial<Record<GateAction, string[]>>;
 
 interface PermissionGateConfig {
 	bash?: ToolGateConfig;
+	read?: ToolGateConfig;
 	edit?: ToolGateConfig;
 	write?: ToolGateConfig;
 }
@@ -45,6 +46,7 @@ function loadConfig(cwd: string): PermissionGateConfig {
 
 	return {
 		bash: mergeToolConfig(globalConfig.bash, projectConfig.bash),
+		read: mergeToolConfig(globalConfig.read, projectConfig.read),
 		edit: mergeToolConfig(globalConfig.edit, projectConfig.edit),
 		write: mergeToolConfig(globalConfig.write, projectConfig.write),
 	};
@@ -70,13 +72,15 @@ function matchesAny(value: string, patterns: string[] | undefined): boolean {
 
 function getTarget(toolName: string, input: Record<string, unknown>): string | undefined {
 	if (toolName === "bash") return typeof input.command === "string" ? input.command : undefined;
-	if (toolName === "edit" || toolName === "write") return typeof input.path === "string" ? input.path : undefined;
+	if (toolName === "read" || toolName === "edit" || toolName === "write") {
+		return typeof input.path === "string" ? input.path : undefined;
+	}
 	return undefined;
 }
 
 export default function (pi: ExtensionAPI) {
 	pi.on("tool_call", async (event, ctx) => {
-		if (event.toolName !== "bash" && event.toolName !== "edit" && event.toolName !== "write") {
+		if (event.toolName !== "bash" && event.toolName !== "read" && event.toolName !== "edit" && event.toolName !== "write") {
 			return undefined;
 		}
 

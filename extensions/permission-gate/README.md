@@ -19,6 +19,7 @@ character.
 Supported tools:
 
 - `bash` matches the command text
+- `read` matches the target path
 - `edit` matches the target path
 - `write` matches the target path
 
@@ -38,6 +39,9 @@ Example `.pi/permission-gate.json`:
   "bash": {
     "ask": ["sudo *", "rm -r *", "rm -rf *"],
     "deny": ["curl * | sh", "chmod 777 *"]
+  },
+  "read": {
+    "deny": [".env*", ".git/*", "node_modules/*"]
   },
   "edit": {
     "deny": [".env*", ".git/*", "node_modules/*"]
