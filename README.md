@@ -26,6 +26,7 @@ The sandbox extension requires an additional setup step — see its
 | [ask-plan](extensions/ask-plan/README.md) | Read-only ask and planning modes with guarded execution |
 | [model-routing](extensions/model-routing/README.md) | Prompt-based model and thinking-level route selection |
 | [question](extensions/question/README.md) | Interactive option picker for assistant questions |
+| [questionnaire](extensions/questionnaire/README.md) | Multi-question form for structured user input |
 | [statusline](extensions/statusline/README.md) | Project-configurable interactive footer command |
 | [todo](extensions/todo/README.md) | Branch-aware in-session todo tool with `/todos` viewer |
 

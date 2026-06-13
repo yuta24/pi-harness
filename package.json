@@ -11,6 +11,7 @@
       "extensions/ask-plan",
       "extensions/model-routing",
       "extensions/question.ts",
+      "extensions/questionnaire.ts",
       "extensions/statusline",
       "extensions/todo.ts"
     ],
