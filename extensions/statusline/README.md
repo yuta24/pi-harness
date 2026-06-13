@@ -1,9 +1,10 @@
 # Statusline Extension
 
-Persistent footer status demo for Pi.
+Compact footer status for Pi sessions.
 
-This extension is based on the official `status-line.ts` example. It uses
-`ctx.ui.setStatus()` to show turn progress in Pi's footer status area.
+This extension is based on the official `status-line.ts` example, but adapted
+as a practical status aggregator. It uses `ctx.ui.setStatus()` to show
+cross-cutting session state in Pi's footer status area.
 
 ## Loading In This Harness
 
@@ -39,9 +40,22 @@ pi --no-extensions -e ./extensions/statusline.ts
 
 ## Behavior
 
-- On session start, the footer status shows `Ready`.
-- On each turn start, it shows the current turn count.
-- On each turn end, it marks that turn complete.
+- Shows the current git branch when available.
+- Shows the Pi session name when set.
+- Shows the active provider/model in compact form.
+- Shows context usage as a percentage or token count.
+- Shows the current turn count.
+- Shows whether the agent is running or ready.
 
-This extension does not run project-local scripts or replace the full footer.
-For a full custom footer example, see the upstream `custom-footer.ts` example.
+Example:
+
+```text
+main · refactor auth · anthropic/sonnet-4 · ctx 42% · turn 3 · ● running
+```
+
+This extension does not replace mode-specific status segments from other
+extensions. For example, `ask-mode`, `plan-mode`, and `sandbox` can still show
+their own dedicated footer segments.
+
+Git branch detection is cached briefly to avoid running `git` on every UI
+render.
