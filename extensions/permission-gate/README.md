@@ -1,21 +1,52 @@
 # Permission Gate Extension
 
-Prompts for confirmation before Pi runs potentially dangerous bash commands.
+Configurable allow/ask/deny gate for Pi tool calls.
 
-## Behavior
+By default, this extension does nothing. Add a config file to enable gates.
 
-The extension watches `bash` tool calls and checks the command against a small
-set of dangerous patterns:
+## Config Files
 
-- `rm -r`, `rm -rf`, and `rm --recursive`
-- `sudo`
-- `chmod` or `chown` commands that include `777`
+Config files are merged, with project-local config taking precedence:
 
-When a matching command is detected:
+- Global: `~/.pi/agent/extensions/permission-gate.json`
+- Project-local: `.pi/permission-gate.json`
 
-- In interactive mode, Pi shows a confirmation prompt.
-- In non-interactive mode, the command is blocked because no UI is available
-  for confirmation.
+## Configuration
+
+Rules are simple glob patterns. `*` matches any text, and `?` matches one
+character.
+
+Supported tools:
+
+- `bash` matches the command text
+- `edit` matches the target path
+- `write` matches the target path
+
+Actions:
+
+- `deny`: always block
+- `allow`: allow without asking
+- `ask`: ask for confirmation in interactive mode; block in non-interactive mode
+
+If multiple actions match, precedence is `deny` → `allow` → `ask`. If no rule
+matches, the tool call is allowed.
+
+Example `.pi/permission-gate.json`:
+
+```json
+{
+  "bash": {
+    "ask": ["sudo *", "rm -r *", "rm -rf *"],
+    "deny": ["curl * | sh", "chmod 777 *"]
+  },
+  "edit": {
+    "deny": [".env*", ".git/*", "node_modules/*"]
+  },
+  "write": {
+    "deny": [".env*", ".git/*", "node_modules/*"]
+  }
+}
+```
 
 ## Usage
 
