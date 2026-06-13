@@ -47,6 +47,8 @@ pi --no-extensions -e ./extensions/ask-mode/index.ts
 
 ## Behavior
 
+When enabled, the footer status shows `ask: read-only`.
+
 Ask mode enables only these tools:
 
 - `read`
@@ -68,12 +70,14 @@ for OS-level command restrictions.
 
 ## Follow-Up Questions
 
-After each answer in interactive mode, ask mode prompts for the next action:
+After each answer in interactive mode, ask mode opens a follow-up editor
+directly.
 
-- ask a follow-up question
-- stay in ask mode
-- exit ask mode
+Behavior:
 
-Choosing "Ask a follow-up" opens an editor and immediately sends the follow-up
-as the next user message. This keeps ask mode active across consecutive
-questions without switching back to normal mode.
+- Enter a follow-up question to send it as the next user message.
+- Submit an empty value to exit ask mode.
+- Press Escape to exit ask mode.
+
+This keeps consecutive Q&A fast: keep typing questions while you want to stay
+in ask mode, then submit empty input or press Escape when done.
