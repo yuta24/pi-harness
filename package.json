@@ -13,6 +13,7 @@
       "extensions/notify.ts",
       "extensions/otel.ts",
       "extensions/permission-gate.ts",
+      "extensions/protected-paths.ts",
       "extensions/question.ts",
       "extensions/questionnaire.ts",
       "extensions/statusline.ts",

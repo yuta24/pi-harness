@@ -1,7 +1,8 @@
 # pi-harness
 
 Project-local Pi harness with sandbox, subagent, ask mode, plan mode, notify,
-OpenTelemetry, permission gate, question, statusline, and todo extensions.
+OpenTelemetry, permission gate, protected paths, question, statusline, and todo
+extensions.
 
 ## Installation
 
@@ -28,6 +29,7 @@ The sandbox extension requires an additional setup step — see its
 | [notify](extensions/notify/README.md) | Terminal notification when Pi is ready for input |
 | [otel](extensions/otel/README.md) | OpenTelemetry usage telemetry via OTLP/HTTP |
 | [permission-gate](extensions/permission-gate/README.md) | Confirmation gate for dangerous bash commands |
+| [protected-paths](extensions/protected-paths/README.md) | Blocks edits to sensitive project paths |
 | [question](extensions/question/README.md) | Interactive option picker for assistant questions |
 | [questionnaire](extensions/questionnaire/README.md) | Multi-question form for structured user input |
 | [statusline](extensions/statusline/README.md) | Persistent footer status for turn progress |
