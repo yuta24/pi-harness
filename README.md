@@ -25,7 +25,7 @@ The sandbox extension requires an additional setup step — see its
 | [subagent](extensions/subagent/README.md) | Delegation to isolated specialized Pi subprocesses |
 | [ask-plan](extensions/ask-plan/README.md) | Read-only ask and planning modes with guarded execution |
 | [model-routing](extensions/model-routing/README.md) | Prompt-based model and thinking-level route selection |
-| [question](extensions/question/README.md) | Interactive clarification tool for assistant questions |
+| [question](extensions/question/README.md) | Interactive option picker for assistant questions |
 | [statusline](extensions/statusline/README.md) | Project-configurable interactive footer command |
 | [todo](extensions/todo/README.md) | Branch-aware in-session todo tool with `/todos` viewer |
 

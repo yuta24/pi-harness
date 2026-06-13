@@ -10,7 +10,7 @@
       "extensions/subagent",
       "extensions/ask-plan",
       "extensions/model-routing",
-      "extensions/question",
+      "extensions/question.ts",
       "extensions/statusline",
       "extensions/todo.ts"
     ],
