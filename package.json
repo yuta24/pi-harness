@@ -2,8 +2,12 @@
   "name": "pi-harness",
   "private": false,
   "version": "1.0.0",
+  "packageManager": "pnpm@9.15.9",
   "license": "MIT",
   "keywords": ["pi-package"],
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
   "pi": {
     "extensions": [
       "extensions/sandbox",
@@ -22,6 +26,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "^0.0.26"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

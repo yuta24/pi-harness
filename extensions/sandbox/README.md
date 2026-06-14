@@ -18,7 +18,7 @@ commands when Pi emits the `user_bash` hook.
 From this extension directory:
 
 ```sh
-npm install
+pnpm install
 ```
 
 When loading the extension directly from this repository, installing from the
@@ -27,7 +27,7 @@ repository root also works because Node can resolve dependencies from the parent
 
 ```sh
 cd /Users/yuta24/ghq/github.com/yuta24/pi-harness
-npm install
+pnpm install
 ```
 
 ## Load Locally

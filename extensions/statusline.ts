@@ -80,7 +80,9 @@ export default function (pi: ExtensionAPI) {
 		const state = agentRunning ? theme.fg("accent", "● running") : theme.fg("success", "✓ ready");
 		const turn = turnCount > 0 ? `turn ${turnCount}` : undefined;
 
-		const dimParts = [gitBranch, session, model, context, turn].filter(Boolean).map((part) => theme.fg("dim", part));
+		const dimParts = [gitBranch, session, model, context, turn]
+			.filter((part): part is string => typeof part === "string")
+			.map((part) => theme.fg("dim", part));
 		ctx.ui.setStatus(STATUS_KEY, [...dimParts, state].join(theme.fg("dim", " · ")));
 	}
 
