@@ -11,11 +11,11 @@ import { Key } from "@earendil-works/pi-tui";
 import { isSafeCommand } from "../plan-mode/utils.ts";
 
 const ASK_MODE_TOOLS = ["read", "bash", "grep", "find", "ls", "question", "questionnaire"];
-const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write"];
 const FOLLOW_UP_DELIVERY = { deliverAs: "followUp", streamingBehavior: "followUp" } as const;
 
 export default function askModeExtension(pi: ExtensionAPI): void {
 	let askModeEnabled = false;
+	let previousActiveTools: string[] | undefined;
 
 	pi.registerFlag("ask", {
 		description: "Start in ask mode (read-only Q&A)",
@@ -35,19 +35,33 @@ export default function askModeExtension(pi: ExtensionAPI): void {
 		pi.appendEntry("ask-mode", { enabled: askModeEnabled });
 	}
 
-	function setAskMode(enabled: boolean, ctx: ExtensionContext): void {
+	function restoreActiveTools(): void {
+		if (!previousActiveTools) return;
+		pi.setActiveTools(previousActiveTools);
+		previousActiveTools = undefined;
+	}
+
+	function setAskMode(enabled: boolean, ctx: ExtensionContext, options: { persist?: boolean } = {}): void {
+		const persist = options.persist ?? true;
+		if (enabled === askModeEnabled) {
+			updateStatus(ctx);
+			if (persist) persistState();
+			return;
+		}
+
 		askModeEnabled = enabled;
 
 		if (askModeEnabled) {
+			previousActiveTools ??= pi.getActiveTools();
 			pi.setActiveTools(ASK_MODE_TOOLS);
 			ctx.ui.notify(`Ask mode enabled. Tools: ${ASK_MODE_TOOLS.join(", ")}`, "info");
 		} else {
-			pi.setActiveTools(NORMAL_MODE_TOOLS);
-			ctx.ui.notify("Ask mode disabled. Full access restored.", "info");
+			restoreActiveTools();
+			ctx.ui.notify("Ask mode disabled. Previous tools restored.", "info");
 		}
 
 		updateStatus(ctx);
-		persistState();
+		if (persist) persistState();
 	}
 
 	pi.registerCommand("ask", {
@@ -158,11 +172,9 @@ Behavior:
 			.filter((entry: { type: string; customType?: string }) => entry.type === "custom" && entry.customType === "ask-mode")
 			.pop() as { data?: { enabled?: boolean } } | undefined;
 
-		askModeEnabled = askModeEntry?.data?.enabled ?? pi.getFlag("ask") === true;
+		const shouldEnableAskMode = askModeEntry?.data?.enabled ?? pi.getFlag("ask") === true;
 
-		if (askModeEnabled) {
-			pi.setActiveTools(ASK_MODE_TOOLS);
-		}
+		if (shouldEnableAskMode) setAskMode(true, ctx, { persist: false });
 		updateStatus(ctx);
 	});
 }

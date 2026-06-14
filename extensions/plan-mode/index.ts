@@ -20,7 +20,6 @@ import { extractTodoItems, isSafeCommand, markCompletedSteps, type TodoItem } fr
 
 // Tools
 const PLAN_MODE_TOOLS = ["read", "bash", "grep", "find", "ls", "questionnaire"];
-const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write"];
 
 // Type guard for assistant messages
 function isAssistantMessage(m: AgentMessage): m is AssistantMessage {
@@ -39,6 +38,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 	let planModeEnabled = false;
 	let executionMode = false;
 	let todoItems: TodoItem[] = [];
+	let previousActiveTools: string[] | undefined;
 
 	pi.registerFlag("plan", {
 		description: "Start in plan mode (read-only exploration)",
@@ -73,19 +73,35 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 		}
 	}
 
-	function togglePlanMode(ctx: ExtensionContext): void {
-		planModeEnabled = !planModeEnabled;
+	function restoreActiveTools(): void {
+		if (!previousActiveTools) return;
+		pi.setActiveTools(previousActiveTools);
+		previousActiveTools = undefined;
+	}
+
+	function setPlanMode(enabled: boolean, ctx: ExtensionContext): void {
+		if (enabled === planModeEnabled) {
+			updateStatus(ctx);
+			return;
+		}
+
+		planModeEnabled = enabled;
 		executionMode = false;
 		todoItems = [];
 
-		if (planModeEnabled) {
+		if (enabled) {
+			previousActiveTools ??= pi.getActiveTools();
 			pi.setActiveTools(PLAN_MODE_TOOLS);
 			ctx.ui.notify(`Plan mode enabled. Tools: ${PLAN_MODE_TOOLS.join(", ")}`);
 		} else {
-			pi.setActiveTools(NORMAL_MODE_TOOLS);
-			ctx.ui.notify("Plan mode disabled. Full access restored.");
+			restoreActiveTools();
+			ctx.ui.notify("Plan mode disabled. Previous tools restored.");
 		}
 		updateStatus(ctx);
+	}
+
+	function togglePlanMode(ctx: ExtensionContext): void {
+		setPlanMode(!planModeEnabled, ctx);
 	}
 
 	function persistState(): void {
@@ -228,7 +244,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
 				);
 				executionMode = false;
 				todoItems = [];
-				pi.setActiveTools(NORMAL_MODE_TOOLS);
+				restoreActiveTools();
 				updateStatus(ctx);
 				persistState(); // Save cleared state so resume doesn't restore old execution mode
 			}
@@ -268,7 +284,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
 		if (choice?.startsWith("Execute")) {
 			planModeEnabled = false;
 			executionMode = todoItems.length > 0;
-			pi.setActiveTools(NORMAL_MODE_TOOLS);
+			restoreActiveTools();
 			updateStatus(ctx);
 
 			const execMessage =
@@ -333,6 +349,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
 		}
 
 		if (planModeEnabled) {
+			previousActiveTools ??= pi.getActiveTools();
 			pi.setActiveTools(PLAN_MODE_TOOLS);
 		}
 		updateStatus(ctx);
