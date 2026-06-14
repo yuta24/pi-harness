@@ -14,19 +14,7 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
 import { matchesKey, Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-
-interface Todo {
-	id: number;
-	text: string;
-	done: boolean;
-}
-
-interface TodoDetails {
-	action: "list" | "add" | "toggle" | "clear";
-	todos: Todo[];
-	nextId: number;
-	error?: string;
-}
+import { applyTodoAction, createInitialTodoState, type Todo, type TodoDetails } from "./todo/utils.ts";
 
 const TodoParams = Type.Object({
 	action: StringEnum(["list", "add", "toggle", "clear"] as const),
@@ -104,16 +92,14 @@ class TodoListComponent {
 
 export default function (pi: ExtensionAPI) {
 	// In-memory state (reconstructed from session on load)
-	let todos: Todo[] = [];
-	let nextId = 1;
+	let { todos, nextId } = createInitialTodoState();
 
 	/**
 	 * Reconstruct state from session entries.
 	 * Scans tool results for this tool and applies them in order.
 	 */
 	const reconstructState = (ctx: ExtensionContext) => {
-		todos = [];
-		nextId = 1;
+		({ todos, nextId } = createInitialTodoState());
 
 		for (const entry of ctx.sessionManager.getBranch()) {
 			if (entry.type !== "message") continue;
@@ -140,82 +126,13 @@ export default function (pi: ExtensionAPI) {
 		parameters: TodoParams,
 
 		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
-			switch (params.action) {
-				case "list":
-					return {
-						content: [
-							{
-								type: "text",
-								text: todos.length
-									? todos.map((t) => `[${t.done ? "x" : " "}] #${t.id}: ${t.text}`).join("\n")
-									: "No todos",
-							},
-						],
-						details: { action: "list", todos: [...todos], nextId } as TodoDetails,
-					};
+			const result = applyTodoAction({ todos, nextId }, params);
+			({ todos, nextId } = result.state);
 
-				case "add": {
-					if (!params.text) {
-						return {
-							content: [{ type: "text", text: "Error: text required for add" }],
-							details: { action: "add", todos: [...todos], nextId, error: "text required" } as TodoDetails,
-						};
-					}
-					const newTodo: Todo = { id: nextId++, text: params.text, done: false };
-					todos.push(newTodo);
-					return {
-						content: [{ type: "text", text: `Added todo #${newTodo.id}: ${newTodo.text}` }],
-						details: { action: "add", todos: [...todos], nextId } as TodoDetails,
-					};
-				}
-
-				case "toggle": {
-					if (params.id === undefined) {
-						return {
-							content: [{ type: "text", text: "Error: id required for toggle" }],
-							details: { action: "toggle", todos: [...todos], nextId, error: "id required" } as TodoDetails,
-						};
-					}
-					const todo = todos.find((t) => t.id === params.id);
-					if (!todo) {
-						return {
-							content: [{ type: "text", text: `Todo #${params.id} not found` }],
-							details: {
-								action: "toggle",
-								todos: [...todos],
-								nextId,
-								error: `#${params.id} not found`,
-							} as TodoDetails,
-						};
-					}
-					todo.done = !todo.done;
-					return {
-						content: [{ type: "text", text: `Todo #${todo.id} ${todo.done ? "completed" : "uncompleted"}` }],
-						details: { action: "toggle", todos: [...todos], nextId } as TodoDetails,
-					};
-				}
-
-				case "clear": {
-					const count = todos.length;
-					todos = [];
-					nextId = 1;
-					return {
-						content: [{ type: "text", text: `Cleared ${count} todos` }],
-						details: { action: "clear", todos: [], nextId: 1 } as TodoDetails,
-					};
-				}
-
-				default:
-					return {
-						content: [{ type: "text", text: `Unknown action: ${params.action}` }],
-						details: {
-							action: "list",
-							todos: [...todos],
-							nextId,
-							error: `unknown action: ${params.action}`,
-						} as TodoDetails,
-					};
-			}
+			return {
+				content: [{ type: "text", text: result.contentText }],
+				details: result.details,
+			};
 		},
 
 		renderCall(args, theme, _context) {
