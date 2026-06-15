@@ -72,7 +72,7 @@ describe("target candidates", () => {
 });
 
 describe("config merge", () => {
-	it("lets project tool actions replace global tool actions independently", () => {
+	it("combines global and project tool actions independently", () => {
 		expect(
 			mergeConfig(
 				{
@@ -84,10 +84,27 @@ describe("config merge", () => {
 				},
 			),
 		).toEqual({
-			bash: { allow: undefined, ask: ["rm -rf *"], deny: ["curl * | sh"] },
+			bash: { allow: undefined, ask: ["sudo *", "rm -rf *"], deny: ["curl * | sh"] },
 			read: { allow: undefined, ask: undefined, deny: [".env*"] },
 			edit: { allow: undefined, ask: undefined, deny: undefined },
 			write: { allow: undefined, ask: undefined, deny: undefined },
+		});
+	});
+
+	it("deduplicates merged tool action patterns", () => {
+		expect(
+			mergeConfig(
+				{
+					read: { deny: [".env*", "*.pem"] },
+				},
+				{
+					read: { deny: [".env*", "secrets/**"] },
+				},
+			).read,
+		).toEqual({
+			allow: undefined,
+			ask: undefined,
+			deny: [".env*", "*.pem", "secrets/**"],
 		});
 	});
 });

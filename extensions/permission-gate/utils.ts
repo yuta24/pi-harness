@@ -13,11 +13,17 @@ export interface PermissionGateConfig {
 
 export type GateDecision = "allow" | "ask" | "deny";
 
+function mergeLists(base?: string[], overrides?: string[]): string[] | undefined {
+	const merged = [...(base ?? []), ...(overrides ?? [])];
+	const unique = Array.from(new Set(merged));
+	return unique.length > 0 ? unique : undefined;
+}
+
 export function mergeToolConfig(base: ToolGateConfig = {}, overrides: ToolGateConfig = {}): ToolGateConfig {
 	return {
-		allow: overrides.allow ?? base.allow,
-		ask: overrides.ask ?? base.ask,
-		deny: overrides.deny ?? base.deny,
+		allow: mergeLists(base.allow, overrides.allow),
+		ask: mergeLists(base.ask, overrides.ask),
+		deny: mergeLists(base.deny, overrides.deny),
 	};
 }
 
