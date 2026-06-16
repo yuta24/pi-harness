@@ -44,13 +44,10 @@
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { SandboxManager, type SandboxRuntimeConfig } from "@anthropic-ai/sandbox-runtime";
+import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type BashOperations, createBashTool, getAgentDir } from "@earendil-works/pi-coding-agent";
-
-interface SandboxConfig extends SandboxRuntimeConfig {
-	enabled?: boolean;
-}
+import { deepMerge, type SandboxConfig } from "./utils.ts";
 
 const DEFAULT_CONFIG: SandboxConfig = {
 	enabled: true,
@@ -100,33 +97,6 @@ function loadConfig(cwd: string): SandboxConfig {
 	}
 
 	return deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), projectConfig);
-}
-
-function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>): SandboxConfig {
-	const result: SandboxConfig = { ...base };
-
-	if (overrides.enabled !== undefined) result.enabled = overrides.enabled;
-	if (overrides.network) {
-		result.network = { ...base.network, ...overrides.network };
-	}
-	if (overrides.filesystem) {
-		result.filesystem = { ...base.filesystem, ...overrides.filesystem };
-	}
-
-	const extOverrides = overrides as {
-		ignoreViolations?: Record<string, string[]>;
-		enableWeakerNestedSandbox?: boolean;
-	};
-	const extResult = result as { ignoreViolations?: Record<string, string[]>; enableWeakerNestedSandbox?: boolean };
-
-	if (extOverrides.ignoreViolations) {
-		extResult.ignoreViolations = extOverrides.ignoreViolations;
-	}
-	if (extOverrides.enableWeakerNestedSandbox !== undefined) {
-		extResult.enableWeakerNestedSandbox = extOverrides.enableWeakerNestedSandbox;
-	}
-
-	return result;
 }
 
 function createSandboxedBashOps(): BashOperations {
